@@ -1,0 +1,28 @@
+rules:
+  indent:
+    - 1
+    - 2
+  quotes:
+    - 0
+    - double
+  linebreak-style:
+    - 2
+    - unix
+  semi:
+    - 1
+    - always
+  prefer-const:
+    - 1
+  no-const-assign:
+    - 2
+  no-console:
+    - 0
+  no-unused-vars:
+    - 1 
+  require-yield:
+    - 2
+
+env:
+  es6: true
+  node: true
+extends: 'eslint:recommended'
