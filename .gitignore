@@ -1,1 +1,6 @@
 node_modules
+logs/*
+.*.swp
+npm-debug.log
+mock-data
+dist
