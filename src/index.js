@@ -1,48 +1,82 @@
 'use strict';
-const {remove} = require('transducers.js');
-const fetch    = require('node-fetch');
-const qs       = require('qs');
-const unesc    = require('querystring').unescape;
-const has      = Reflect.has;
-const md5      = require('md5');
+const { toObj, mapcat, remove} = require('transducers.js');
+const fetch                    = require('node-fetch');
+const qs                       = require('qs');
+const has                      = Reflect.has;
+const md5                      = require('md5');
+const isArray                  = require('is-array');
 
-const filterFields = {
-  survey: {
+const buildEmpty = object => Object.assign(Object.create(null), object);
+const filterFields = buildEmpty({
+  survey: Object.assign(Object.create(null), {
     modifiedOn: 'modifiedon',
+    modifiedon: 'modifiedon',
+    lastModified: 'lastModified',
+    lastmodified: 'lastmodified',
     createdOn: 'createdon',
+    createdon: 'createdon',
+    created: 'createdon',
     title: 'title',
     subType: 'subtype',
+    subtype: 'subtype',
     team: 'team'
-  }
-};
+  })
+});
 
-const filterOperators = {
+const filterOperators = buildEmpty({
   equal: '=',
+  equals: '=',
+  eq: '=',
+  '=':'=',
+  '>': '>',
+  'gt':'>',
+  'lt':'<',
+  '<':'<',
   notEqual: '<>',
+  neq: '<>',
   nil: 'IS NULL',
+  isNull: 'IS NULL',
   notNil: 'IS NOT NULL',
-  inList: 'in'
+  inList: 'in',
+  in: 'in',
+  IN: 'in',
+  like: 'like'
+});
+
+const parseFilters = type => filters => {
+  filters = isArray(filters) ? filters : [filters];
+  const parse = parseFilterObj(type);
+  return filters.reduce((col, xo) => {
+    const parsed = parse(xo);
+    for (const key of ['field', 'value', 'operator']) {
+      col[key].push(parsed[key]);
+    }
+    // col.field.push(xo.field);
+    // col.operator.push(xo.operator);
+    // col.value.push(xo.value);
+    return col;
+  }, {field: [], value: [], operator: []});
 };
 
-const parseFilters = (type, filters) => {
-  if (Array.isArray(filters)) {
-    return filters.map(filterObj => parseFilterObj(type, filterObj));
-  } else {
-    return [parseFilterObj(type, filters)];
-  }
-};
-
-const parseFilterObj = (type, {field, operator, value}) => {
+const parseFilterObj = type => ({field, operator, value}) => {
   const fields = filterFields[type];
-  if (!has(filterOperators, operator)) {
-    throw new Error(`'Invalid operator: ${operator}`);
-  }
-  if (!has(fields, field)) {
-    throw new Error(`Invalid field [${field}], must be one of ${JSON.stringify(Object.keys(fields))}`);
-  }
-  return {
-    field: fields[field], operator: filterOperators[operator], value
+  value = isArray(value) ? value.join(',') : value;
+  const builtFilterObj = {
+    field: fields[field],
+    operator: filterOperators[operator],
+    value
   };
+
+  if (typeof builtFilterObj.field === 'undefined') {
+    throw new Error(`filter.field is undefined; ${JSON.stringify(builtFilterObj)}`);
+  }
+  if (typeof builtFilterObj.operator === 'undefined') {
+    throw new Error(`filter.operator is undefined; ${JSON.stringify(builtFilterObj)}`);
+  }
+  if (typeof builtFilterObj.value === 'undefined') {
+    throw new Error(`filter.value is undefined; ${JSON.stringify(builtFilterObj)}`);
+  }
+  return builtFilterObj;
 };
 
 
@@ -56,7 +90,6 @@ const proto = {
   request(path, opts) {
     const queryObj = {
       ...opts.query,
-      // ...remove(opts.query, kp => kp[0] === 'filter'),
       ...this._session
     };
     const query = has(opts, 'query') ? '?' + qs.stringify(queryObj) : '';
@@ -65,9 +98,14 @@ const proto = {
     const fetchOpts = remove(opts, kp => kp[0] === 'query');
     
     const url = `${this._baseURL}${path}${query}`;
-    // if (filter.length) url += `&filter=${filter}`;
-    console.log('Url: ', url);
-    return fetch(url, fetchOpts);
+    return fetch(url, fetchOpts).then(response => {
+      if (response.status >= 400) {
+        var {status, statusText, url, headers} = response;
+        return Promise.reject({status, statusText, url, headers}); 
+      }
+      return response.json()
+        .catch(error => Promise.reject({msg: 'Failed to parse JSON', url, error, status, statusText}));
+    });
   },
   setCredentials,
   getSurveys,
@@ -76,9 +114,9 @@ const proto = {
 
 
 function getSurveys(query) {
-  const q = {};
+  const q = {...query};
   if (query && has(query, 'filter')) {
-    q.filter = parseFilters('survey', query.filter);
+    q.filter = parseFilters('survey')(query.filter);
   }
   return this.request('/survey', {query: {...remove(query, kp => kp[0] === 'filter'), ...q}});
 }
@@ -86,7 +124,7 @@ function getSurveys(query) {
 function getSurvey(id, query) {
   const q = {};
   if (query && has(query, 'filter')) {
-    q.filter = parseFilters('survey', query.filter);
+    q.filter = parseFilters('survey')(query.filter);
   }
   return this.request('/survey/${id}', {query: {...query, ...q}});
 }
