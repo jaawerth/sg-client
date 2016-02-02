@@ -1,47 +1,13 @@
 'use strict';
 const { toObj, mapcat, remove} = require('transducers.js');
-const fetch                    = require('node-fetch');
-const qs                       = require('qs');
-const has                      = Reflect.has;
-const md5                      = require('md5');
-const isArray                  = require('is-array');
+const axios                    = require('axios');                            
+const qs                       = require('qs');            
+const md5                      = require('md5');           
+const isArray                  = Array.isArray;
+const has                      = Reflect.has;              
 
 const buildEmpty = object => Object.assign(Object.create(null), object);
-const filterFields = buildEmpty({
-  survey: Object.assign(Object.create(null), {
-    modifiedOn: 'modifiedon',
-    modifiedon: 'modifiedon',
-    lastModified: 'lastModified',
-    lastmodified: 'lastmodified',
-    createdOn: 'createdon',
-    createdon: 'createdon',
-    created: 'createdon',
-    title: 'title',
-    subType: 'subtype',
-    subtype: 'subtype',
-    team: 'team'
-  })
-});
 
-const filterOperators = buildEmpty({
-  equal: '=',
-  equals: '=',
-  eq: '=',
-  '=':'=',
-  '>': '>',
-  'gt':'>',
-  'lt':'<',
-  '<':'<',
-  notEqual: '<>',
-  neq: '<>',
-  nil: 'IS NULL',
-  isNull: 'IS NULL',
-  notNil: 'IS NOT NULL',
-  inList: 'in',
-  in: 'in',
-  IN: 'in',
-  like: 'like'
-});
 
 const parseFilters = type => filters => {
   filters = isArray(filters) ? filters : [filters];
@@ -60,7 +26,7 @@ const parseFilters = type => filters => {
 
 const parseFilterObj = type => ({field, operator, value}) => {
   const fields = filterFields[type];
-  value = isArray(value) ? value.join(',') : value;
+  value = Array.isArray(value) ? value.join(',') : value;
   const builtFilterObj = {
     field: fields[field],
     operator: filterOperators[operator],
