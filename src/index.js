@@ -1,111 +1,100 @@
 'use strict';
-const { toObj, mapcat, remove} = require('transducers.js');
-const axios                    = require('axios');                            
-const qs                       = require('qs');            
-const md5                      = require('md5');           
-const isArray                  = Array.isArray;
-const has                      = Reflect.has;              
+const { remove, compose } = require('transducers.js');
+const axios               = require('axios');                            
+const qs                  = require('qs');            
+const md5                 = require('md5');           
+const isInteger           = Number.isInteger;
 
-const buildEmpty = object => Object.assign(Object.create(null), object);
+const filters             = require('./filters');
+function authConfig({username, password, token, secret }) {
+  return username && password ?
+    { 'user:md5': `${username}:${md5(password)}`} : { api_token: token, api_token_secret: secret };
+}
 
+const authSetter = authConfig => config =>
+  ({...config, params: {...config.params, ...authConfig } });
 
-const parseFilters = type => filters => {
-  filters = isArray(filters) ? filters : [filters];
-  const parse = parseFilterObj(type);
-  return filters.reduce((col, xo) => {
-    const parsed = parse(xo);
-    for (const key of ['field', 'value', 'operator']) {
-      col[key].push(parsed[key]);
-    }
-    // col.field.push(xo.field);
-    // col.operator.push(xo.operator);
-    // col.value.push(xo.value);
-    return col;
-  }, {field: [], value: [], operator: []});
-};
+const authInterceptor = compose(authSetter, authConfig);
 
-const parseFilterObj = type => ({field, operator, value}) => {
-  const fields = filterFields[type];
-  value = Array.isArray(value) ? value.join(',') : value;
-  const builtFilterObj = {
-    field: fields[field],
-    operator: filterOperators[operator],
-    value
-  };
+function Client({baseURL = 'https://restapi.surveygizmo.com', version = 'v4', ...opts} = {}) {
 
-  if (typeof builtFilterObj.field === 'undefined') {
-    throw new Error(`filter.field is undefined; ${JSON.stringify(builtFilterObj)}`);
-  }
-  if (typeof builtFilterObj.operator === 'undefined') {
-    throw new Error(`filter.operator is undefined; ${JSON.stringify(builtFilterObj)}`);
-  }
-  if (typeof builtFilterObj.value === 'undefined') {
-    throw new Error(`filter.value is undefined; ${JSON.stringify(builtFilterObj)}`);
-  }
-  return builtFilterObj;
-};
+  const http = axios.create({
+    requestType: 'json',
+    baseURL,
+    paramSerializer: params => qs.stringify(params)
+  });
 
+  http.intercepters.request.use(authInterceptor(opts));
 
-
-function Client({baseURL = 'https://restapi.surveygizmo.com/v4', ...sessionInfo}) {
-  this._baseURL = baseURL;
-  this.setCredentials(sessionInfo);
+  Object.defineProperty(this, '_http', {
+    configurable: true, writable: false, enumerable: false, value: http
+  });
 }
 
 const proto = {
-  request(path, opts) {
-    const queryObj = {
-      ...opts.query,
-      ...this._session
-    };
-    const query = has(opts, 'query') ? '?' + qs.stringify(queryObj) : '';
-    // const filter = unesc(qs.stringify(opts.query.filter));
-
-    const fetchOpts = remove(opts, kp => kp[0] === 'query');
-    
-    const url = `${this._baseURL}${path}${query}`;
-    return fetch(url, fetchOpts).then(response => {
-      if (response.status >= 400) {
-        var {status, statusText, url, headers} = response;
-        return Promise.reject({status, statusText, url, headers}); 
-      }
-      return response.json()
-        .catch(error => Promise.reject({msg: 'Failed to parse JSON', url, error, status, statusText}));
-    });
-  },
-  setCredentials,
   getSurveys,
   getSurvey
 };
 
 
-function getSurveys(query) {
+// TODO: fully document API
+/**
+ * [get surveys (paginated)]
+ * @param  {object} opts Options, such a filter
+ * @return {Promise}      Promise that resolves to survey data
+ */
+function getSurveys(query={}) {
+
+  return this._http({
+    url: '/survey/',
+    params: {...remove(query, filter: query.filter},
+    method: 'get'
+  });
+}
+
+// TODO: fully document API
+/**
+ * [get a single survey by ID]
+ * @param  {number} id   Numerical ID for target survey
+ * @param  {object} opts Options, such a filter
+ * @return {Promise}      Promise that resolves to survey data
+ */
+function getSurvey(id, opts) {
+  id = Number(id);
+  if (!isInteger(id)) throw new TypeError('Must provide a numerical ID');
   const q = {...query};
   if (query && has(query, 'filter')) {
     q.filter = parseFilters('survey')(query.filter);
   }
-  return this.request('/survey', {query: {...remove(query, kp => kp[0] === 'filter'), ...q}});
+  return this._http({
+    url: `/survey/${id}`,
+    params: {...opts},
+    method: 'get'
+  });
 }
 
-function getSurvey(id, query) {
-  const q = {};
-  if (query && has(query, 'filter')) {
-    q.filter = parseFilters('survey')(query.filter);
-  }
-  return this.request('/survey/${id}', {query: {...query, ...q}});
-}
 
-function setCredentials(auth) {
-  if (has(auth, 'token')) {
-    this._session = auth.token;
-  } else if (has(auth, 'username')  && has(auth, 'password')) { 
-    this._session = {
-      'user:md5': `${auth.username}:${md5(auth.password)}`
-    };
-    //{ username: auth.username, password: auth.password };
-  }
-  return this;
-}
+
+// function authInterceptor(authConfig) {
+//   if (username && password) {
+//     return function attachCredentials(config) {
+//       config.params = {
+//         ...config.params,
+//         'user:md5': `${username}:${md5(password)}`
+//       }
+//     };
+//   }
+
+  // if (has(auth, 'token')) {
+  //   this._session = auth.token;
+  // } else if (has(auth, 'username')  && has(auth, 'password')) { 
+  //   this._session = {
+  //     'user:md5': `${auth.username}:${md5(auth.password)}`
+  //   };
+  //   //{ username: auth.username, password: auth.password };
+  // }
+  // return this;
+// }
 
 Client.prototype = proto;
 
