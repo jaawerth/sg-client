@@ -16,26 +16,57 @@ const authSetter = authConfig => config =>
 
 const authInterceptor = compose(authSetter, authConfig);
 
-function Client({baseURL = 'https://restapi.surveygizmo.com', version = 'v4', ...opts} = {}) {
+class Client {
 
-  const http = axios.create({
-    requestType: 'json',
-    baseURL,
-    paramSerializer: params => qs.stringify(params)
-  });
+  constructor({baseURL = 'https://restapi.surveygizmo.com', version = 'v4', ...opts} = {}) {
 
-  http.intercepters.request.use(authInterceptor(opts));
+    const http = axios.create({
+      requestType: 'json',
+      baseURL,
+      paramSerializer: params => qs.stringify(params)
+    });
 
-  Object.defineProperty(this, '_http', {
-    configurable: true, writable: false, enumerable: false, value: http
-  });
+    http.intercepters.request.use(authInterceptor(opts));
+
+    Object.defineProperty(this, '_http', {
+      configurable: true, writable: false, enumerable: false, value: http
+    });
+  }
+
+  static create(opts = {}) {
+    return new Client(opts);
+  }
+
+  static filters = filters;
+ 
+  getSurveys(query={}) {
+
+    return this._http({
+      url: '/survey/',
+      // params: {...remove(query, filter: query.filter},
+      method: 'get'
+    });
+  }
+  getSurvey(id, opts) {
+    id = Number(id);
+    if (!isInteger(id)) throw new TypeError('Must provide a numerical ID');
+    // const q = {...query};
+    // if (query && has(query, 'filter')) {
+    //   q.filter = parseFilters('survey')(query.filter);
+    // }
+    return this._http({
+      url: `/survey/${id}`,
+      params: {...opts},
+      method: 'get'
+    });
+  }
 }
+// const proto = {
+//   getSurveys,
+//   getSurvey
+// };
 
-const proto = {
-  getSurveys,
-  getSurvey
-};
-
+module.exports = Client;
 
 // TODO: fully document API
 /**
@@ -43,14 +74,14 @@ const proto = {
  * @param  {object} opts Options, such a filter
  * @return {Promise}      Promise that resolves to survey data
  */
-function getSurveys(query={}) {
+// function getSurveys(query={}) {
 
-  return this._http({
-    url: '/survey/',
-    params: {...remove(query, filter: query.filter},
-    method: 'get'
-  });
-}
+//   return this._http({
+//     url: '/survey/',
+//     params: {...remove(query, filter: query.filter},
+//     method: 'get'
+//   });
+// }
 
 // TODO: fully document API
 /**
@@ -59,19 +90,19 @@ function getSurveys(query={}) {
  * @param  {object} opts Options, such a filter
  * @return {Promise}      Promise that resolves to survey data
  */
-function getSurvey(id, opts) {
-  id = Number(id);
-  if (!isInteger(id)) throw new TypeError('Must provide a numerical ID');
-  const q = {...query};
-  if (query && has(query, 'filter')) {
-    q.filter = parseFilters('survey')(query.filter);
-  }
-  return this._http({
-    url: `/survey/${id}`,
-    params: {...opts},
-    method: 'get'
-  });
-}
+// function getSurvey(id, opts) {
+//   id = Number(id);
+//   if (!isInteger(id)) throw new TypeError('Must provide a numerical ID');
+//   const q = {...query};
+//   if (query && has(query, 'filter')) {
+//     q.filter = parseFilters('survey')(query.filter);
+//   }
+//   return this._http({
+//     url: `/survey/${id}`,
+//     params: {...opts},
+//     method: 'get'
+//   });
+// }
 
 
 
@@ -95,7 +126,3 @@ function getSurvey(id, opts) {
   // }
   // return this;
 // }
-
-Client.prototype = proto;
-
-module.exports = Client;
