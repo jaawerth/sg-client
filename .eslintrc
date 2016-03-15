@@ -8,5 +8,3 @@ rules:
   indent:
     - 1
     - 2
-ecmaFeatures:
-  experimentalObjectRestSpread: true
