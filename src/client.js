@@ -1,18 +1,19 @@
 'use strict';
 const qs         = require('qs');
-const {compose, filter } = require('transducers.js');
+const {compose} = require('transducers.js');
 const axios      = require('axios');
 const md5        = require('md5');
 const paths      = require('./api-paths');
 const Rx         = require('rxjs/Rx');
 const is = require('is');
+const svyFilter = require('./filter');
 /** TODO: remove this dev content  */
-const http = require('http');
-const req0 = http.request;
-http.request = (...args) => {
-  console.log(`Args: ${args && args[0] && args[0].path}`);
-  return req0(...args);
-};
+// const http = require('http');
+// const req0 = http.request;
+// http.request = (...args) => {
+//   console.log(`Args: ${args && args[0] && args[0].path}`);
+//   return req0(...args);
+// };
 /***********************************/
 
 const authSetter = authConfig => config =>
@@ -94,21 +95,21 @@ class SurveyGizmoClient {
       if (!is.int(totalPages) || page < totalPages) {
         return this.getSurveys({resultsperpage, filter, page }).then(res => {
           subject.next(res.data);
-          return nextPage(page + 1, Number(res.total_pages))
+          return nextPage(page + 1, Number(res.total_pages));
         }).catch(err => {
           subject.error(err);
         });
       } else {
         subject.complete({start, end: new Date()});
       }
-    }
+    };
 
     nextPage();
     return subject.asObservable();
 
   }
 
-  getAllResponses(surveyId, { resultsperpage = 200, filter} = {}) {
+  getAllResponses(surveyId, { resultsperpage = 200 } = {}) {
     const start = new Date();
     const subject = new Rx.Subject();
     const total = [];
@@ -118,9 +119,9 @@ class SurveyGizmoClient {
         return this.getResponses(surveyId, {resultsperpage, page}).then(res => {
           const [page, totalPages] = [res.page, res.total_pages].map(x => Number(x));
           subject.next(Rx.Observable.from(res.data));
-        console.log('retrieved', {page, totalPages});
+          console.log('retrieved', {page, totalPages});
           total.push(...res.data);
-          return nextPage(page + 1, totalPages)
+          return nextPage(page + 1, totalPages);
         }).catch(err => {
           console.error('uh oh', err);
           subject.error(err);
@@ -128,7 +129,7 @@ class SurveyGizmoClient {
       } else {
         subject.complete({start, end: new Date(), total});
       }
-    }
+    };
 
     nextPage();
     return subject.asObservable().concatAll();
@@ -192,5 +193,6 @@ class SurveyGizmoClient {
 }
 
 
+SurveyGizmoClient.prototype.filter = svyFilter;
 
 module.exports = SurveyGizmoClient;
