@@ -2,7 +2,7 @@
 const {toObj, map, mapcat} = require('transducers.js');
 
 
-const filter = filters => filters.reduce((fs, {field, value, operator}) => {
+const filter = filters => [].concat(filters).reduce((fs, {field, value, operator}) => {
   fs.filter.field.push(field);
   fs.filter.operator.push(operator);
   fs.filter.value.push(value);
@@ -12,10 +12,9 @@ const filter = filters => filters.reduce((fs, {field, value, operator}) => {
 
 const f = (field, operator, value) => ({field, operator, value});
 
-filter.f = filter.filter = f;
+filter.f = f;
 
-
-const filters = {
+const operators = {
   like: (field, value) => f(field, 'LIKE', value),
   eq: (field, value) => f(field, '=', value),
   neq: (field, value) => f(field, '<>', value),
@@ -25,4 +24,8 @@ const filters = {
   lte: (field, value) => f(field, '<=', value),
   in: (field, value) => f(field, 'IN', value)
 };
-module.exports = f;
+//f.op = operators;
+
+Object.defineProperty(filter, 'ops', { value: operators, enumerable: true, configurable: true, writable: false });
+
+module.exports = { filter, ops: operators, f };

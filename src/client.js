@@ -6,7 +6,6 @@ const md5        = require('md5');
 const paths      = require('./api-paths');
 const Rx         = require('rxjs/Rx');
 const is = require('is');
-const svyFilter = require('./filter');
 /** TODO: remove this dev content  */
 // const http = require('http');
 // const req0 = http.request;
@@ -195,6 +194,10 @@ class SurveyGizmoClient {
 }
 
 
-SurveyGizmoClient.prototype.filter = svyFilter;
+const svyFilter = require('./filter');
+Object.assign(SurveyGizmoClient, svyFilter)
+Object.assign(SurveyGizmoClient.prototype, svyFilter)
+//SurveyGizmoClient.prototype.filter = svyFilter;
+//SurveyGizmoClient.filter = svyFilter;
 
 module.exports = SurveyGizmoClient;

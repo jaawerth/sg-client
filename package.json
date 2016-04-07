@@ -29,7 +29,8 @@
     "build": "babel src -d dist",
     "lint": "eslint src",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "bn": "babel-node --presets=es2015,stage-2 --plugins=transform-function-bind"
   },
   "repository": {
     "type": "git",
