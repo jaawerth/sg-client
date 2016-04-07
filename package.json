@@ -30,7 +30,7 @@
     "build": "babel src -d dist",
     "lint": "eslint src",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublish": "build"
+    "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
