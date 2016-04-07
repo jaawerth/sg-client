@@ -1,6 +1,6 @@
 {
   "name": "@jaawerth/sg",
-  "version": "1.0.0-prerelease-alpha",
+  "version": "1.0.0",
   "description": "A Promise-based client for the SurveyGizmo API",
   "main": "dist/index.js",
   "dependencies": {
