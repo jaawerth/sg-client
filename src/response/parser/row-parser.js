@@ -1,13 +1,20 @@
 'use strict';
 
-'use strict';
-
 const {map, filter, into, compose} = require('transducers.js');
-// import rules from './rules';
 const rules = require('./rules');
 const is = require('is');
-//const assert = require('assert');
-// import models from '../../db';
+
+const regex = {
+  variable: /variable\("?([a-zA-Z_0-9]+)"?\)/,
+  question: /question\(([0-9]+)\)\s?,?\s?(?:,?\s?(.+)?\s?)/,
+  option: /option\(([0-9]+)\)\s?,?\s?(?:(.+)\s?)?$/,
+  question_pipe: /question_pipe\(([0-9]+)\)\s?,?\s?(?:(.+)\s?)?/
+};
+
+const parseKey => regex => key => {
+  raw: key,
+  data: regex.exec(key)
+};
 
 const responseTransducer = {
   ['@@transducer/init']() {
@@ -20,10 +27,6 @@ const responseTransducer = {
 
   }
 };
-
-function responseObject(base) {
-  return Object.create(responseTransducer); 
-}
 function responseVars(keyPair) {
   const [iKey, iValue] = keyPair;
   const result = into({}, compose(
