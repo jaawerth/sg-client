@@ -1,5 +1,5 @@
 {
-  "name": "@jaawerth/surveygizmo",
+  "name": "@jaawerth/sg",
   "version": "1.0.0-prerelease-alpha",
   "description": "A Promise-based client for the SurveyGizmo API",
   "main": "dist/index.js",
@@ -37,7 +37,7 @@
     "url": "git+https://github.com/jaawerth/sg-client.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Private",
   "bugs": {
     "url": "https://github.com/jaawerth/sg-client/issues"
   },

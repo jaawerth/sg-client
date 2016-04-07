@@ -1,20 +1,19 @@
 'use strict';
-
 const {map, filter, into, compose} = require('transducers.js');
 const rules = require('./rules');
 const is = require('is');
 
-const regex = {
+const regexes = {
   variable: /variable\("?([a-zA-Z_0-9]+)"?\)/,
   question: /question\(([0-9]+)\)\s?,?\s?(?:,?\s?(.+)?\s?)/,
   option: /option\(([0-9]+)\)\s?,?\s?(?:(.+)\s?)?$/,
   question_pipe: /question_pipe\(([0-9]+)\)\s?,?\s?(?:(.+)\s?)?/
 };
 
-const parseKey => regex => key => {
+const parseKey = regex => key => ({
   raw: key,
   data: regex.exec(key)
-};
+});
 
 const responseTransducer = {
   ['@@transducer/init']() {

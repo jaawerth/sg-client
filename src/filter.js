@@ -24,4 +24,5 @@ const filters = {
   gte: (field, value) => f(field, '>=', value),
   lte: (field, value) => f(field, '<=', value),
   in: (field, value) => f(field, 'IN', value)
+};
 module.exports = f;
