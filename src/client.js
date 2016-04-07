@@ -32,7 +32,9 @@ function authConfig({username, password, apiToken, apiTokenSecret }) {
 
 
 const handleHttpStatus = result => {
-  if (!result.status || result.status >= 400 || result.code >= 400) return Promise.reject(result);
+  if (!result.status || result.status >= 400 || !result.data.result_ok || result.data.code >= 400 ) {
+    return Promise.reject(result.data);
+  }
   return result && result.data ? result.data : result;
 };
 
