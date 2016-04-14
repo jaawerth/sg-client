@@ -60,12 +60,10 @@ function parseRow([key, value]) {
 
 
 const response = require('../../samples/test-responses.json');
+const keys = x => Object.keys(x).length;
+const output = map(response.data, r => toArray(r, compose(map(parseRow), filter(obj => ('value' in obj) && keys(obj) > 1))));
 
-const output = map(response.data, r => into(new Container, map(parseRow), r));
-
-const writeFile = require('@jaawerth/promisify')(require('fs').writeFile);
-
-writeFile('./testout.json', JSON.stringify(output, null, 2));
+console.log(JSON.stringify(output, null, 2));
 
 
 
