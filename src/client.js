@@ -220,8 +220,8 @@ class SurveyGizmoClient {
 
 
 const svyFilter = require('./filter');
-Object.assign(SurveyGizmoClient, svyFilter)
-Object.assign(SurveyGizmoClient.prototype, svyFilter)
+Object.assign(SurveyGizmoClient, svyFilter);
+Object.assign(SurveyGizmoClient.prototype, svyFilter);
 //SurveyGizmoClient.prototype.filter = svyFilter;
 //SurveyGizmoClient.filter = svyFilter;
 
