@@ -24,9 +24,9 @@ const authInterceptor = compose(authSetter, authConfig);
 
 
 
-function authConfig({username, password, apiToken, apiTokenSecret }) {
+function authConfig({username, password, apiToken, apiTokenSecret, api_token, api_token_secret }) {
   return username && password ?
-    { 'user:md5': `${username}:${md5(password)}`} : { api_token: apiToken, api_token_secret: apiTokenSecret };
+    { 'user:md5': `${username}:${md5(password)}`} : { api_token: apiToken || api_token, api_token_secret: apiTokenSecret || api_token_secret };
 }
 
 
