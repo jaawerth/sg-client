@@ -137,6 +137,31 @@ class SurveyGizmoClient {
 
   }
 
+  getAllQuestions(surveyId, {resultsperpage = 200, ...params} = {}) {
+    const start = new Date();
+    const subject = new Rx.Subject();
+    let total = [];
+    const nextPage = (page = 1, totalPages = null) => {
+      if (!is.int(totalPages) || page < totalPages) {
+        return this.getQuestions(surveyId, {...params, resultsperpage, page}).then(res => {
+          const [page, totalPages] = [res.page, res.total_pages].map(x => Number(x));
+          subject.next(Rx.Observable.from(res.data));
+          console.log('retrieved', {page, totalPages});
+          total = total.concat(res.data);
+          return nextPage(page + 1, totalPages);
+        }).catch(err => {
+          console.error('uh oh', err);
+          subject.error(err);
+        });
+      } else {
+        subject.complete({start, end: new Date(), total});
+      }
+    };
+
+    nextPage();
+    return subject.asObservable().concatAll();
+  }
+
   getQuestion(surveyId, questionId, params = {}) {
     const path = paths.question({surveyId, questionId});
     return this.get(path, {params});
