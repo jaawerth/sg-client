@@ -14,7 +14,7 @@ const response = ({surveyId, responseId = ''} = {}) =>
 
 const accountObject = () => '/account';
 
-const accountUser = ({accountUserId = ''} = {}) => `/accountuser/${userId}`;
+const accountUser = ({userId = ''} = {}) => `/accountuser/${userId}`;
 
 const statistics = ({surveyId = ''} = {}) => `/survey/${surveyId}/surveystatistic`;
 

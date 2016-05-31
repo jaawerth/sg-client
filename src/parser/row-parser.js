@@ -1,3 +1,4 @@
+/*eslint-disable */
 'use strict';
 const {map, filter, into, compose} = require('transducers.js');
 const rules = require('./rules');

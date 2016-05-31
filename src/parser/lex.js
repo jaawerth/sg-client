@@ -1,4 +1,4 @@
-
+/*eslint-disable */
 'use strict';
 const {toArray, seq, filter, map, into, toObj, compose} = require('transducers.js');
 
