@@ -25,8 +25,11 @@ const authInterceptor = compose(authSetter, authConfig);
 
 
 function authConfig({username, password, apiToken, apiTokenSecret, api_token, api_token_secret }) {
-  return username && password ?
-    { 'user:md5': `${username}:${md5(password)}`} : { api_token: apiToken || api_token, api_token_secret: apiTokenSecret || api_token_secret };
+  const config = { api_token: apiToken || api_token, api_token_secret: apiTokenSecret || api_token_secret };
+  if (!config.api_token || !config.api_token_secret) {
+    throw new Error('api_token and api_token_secret are required') 
+  }
+  return config;
 }
 
 
