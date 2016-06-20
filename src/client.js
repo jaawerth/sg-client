@@ -6,14 +6,9 @@ const md5        = require('md5');
 const paths      = require('./api-paths');
 const Rx         = require('rxjs/Rx');
 const is = require('is');
-/** TODO: remove this dev content  */
-// const http = require('http');
-// const req0 = http.request;
-// http.request = (...args) => {
-//   console.log(`Args: ${args && args[0] && args[0].path}`);
-//   return req0(...args);
-// };
-/***********************************/
+
+const {filter, Filter, operators} = require('./filter');
+
 
 const authSetter = authConfig => config =>
   ({...config, params: {...config.params, ...authConfig } });
@@ -24,12 +19,12 @@ const authInterceptor = compose(authSetter, authConfig);
 
 
 
-function authConfig({username, password, apiToken, apiTokenSecret, api_token, api_token_secret }) {
-  const config = { api_token: apiToken || api_token, api_token_secret: apiTokenSecret || api_token_secret };
-  if (!config.api_token || !config.api_token_secret) {
-    throw new Error('api_token and api_token_secret are required') 
+function authConfig({apiToken, apiTokenSecret, api_token, api_token_secret }) {
+  const auth = { api_token: api_token || apiToken, api_token_secret: api_token_secret || apiTokenSecret };
+  if (!auth.api_token || !auth.api_token_secret) {
+    throw new Error('api_token and api_token_secret are required'); 
   }
-  return config;
+  return auth;
 }
 
 
@@ -40,36 +35,7 @@ const handleHttpStatus = result => {
   return result && result.data ? result.data : result;
 };
 
-class SurveyGizmoClient {
-  constructor({baseURL = 'https://restapi.surveygizmo.com', version = 'v4', ...opts} = {}) {
-    baseURL = `${baseURL}/${version}`;
-    const http = axios.create({
-      requestType: 'json',
-      baseURL,
-      paramsSerializer: params => qs.stringify(params)
-    });
-
-    http.interceptors.request.use(authInterceptor(opts));
-
-    Object.defineProperty(this, 'http', {
-      configurable: true, writable: false, enumerable: true, value: http
-    });
-
-  }
-
-  /**
-   * Create a new client instance
-   * @param {String} config.baseURL The SurveyGizmo URL - defaults to 'https://restapi.surveygizmo.com'
-   * @param {String} [config.version = 'v4'] API version.
-   * @param {String} [config.apiToken] User's API token for SurveyGizmo
-   * @param {String} [config.apiTokenSecret] Secret to go with API token.
-   * @param {String} [config.username] Username - if not using tokens for auth
-   * @param {String} [config.password] Password - if not using tokens for auth
-   * @return {Object}  - instance of SurveyGizmo client
-   */
-  static create(config) {
-    return new SurveyGizmoClient(config);
-  }
+const proto = {
 
   /**
    * [getSurvey description]
@@ -79,7 +45,7 @@ class SurveyGizmoClient {
    */
   getSurvey(surveyId) {
     return this.get(paths.survey({surveyId}));
-  }
+  },
 
   /**
    * [getSurveys description]
@@ -90,7 +56,7 @@ class SurveyGizmoClient {
    */
   getSurveys(params = {}) {
     return this.get(paths.survey(), { params });
-  }
+  },
 
   getAllSurveys({ resultsperpage = 500, filter} = {}) {
     const start = new Date();
@@ -111,7 +77,7 @@ class SurveyGizmoClient {
     nextPage();
     return subject.asObservable();
 
-  }
+  },
 
   getAllResponses(surveyId, { resultsperpage = 200 } = {}) {
     const start = new Date();
@@ -138,7 +104,7 @@ class SurveyGizmoClient {
     nextPage();
     return subject.asObservable().concatAll();
 
-  }
+  },
 
   getAllQuestions(surveyId, {resultsperpage = 200, ...params} = {}) {
     const start = new Date();
@@ -163,68 +129,101 @@ class SurveyGizmoClient {
 
     nextPage();
     return subject.asObservable().concatAll();
-  }
+  },
 
   getQuestion(surveyId, questionId, params = {}) {
     const path = paths.question({surveyId, questionId});
     return this.get(path, {params});
-  }
+  },
 
   getQuestions(surveyId, params = {}) {
     const path = paths.question({surveyId});
     return this.get(path, {params});
-  }
+  },
 
   getOptions(surveyId, questionId) {
     const path = paths.option({surveyId, questionId});
     return this.get(path);
-  }
+  },
 
   getOption(surveyId, questionId, optionId) {
     const path = paths.option({surveyId, questionId, optionId});
     return this.get(path);
-  }
+  },
 
   getResponses(surveyId, params) {
     const path = paths.response({surveyId});
     return this.get(path, {params});
-  }
+  },
 
   getResponse(surveyId, responseId) {
     const path = paths.response({surveyId, responseId});
     return this.get(path);
-  }
+  },
 
   getStatistics(surveyId, {pageId, questionId} = {}) {
     const path = paths.statistics({surveyId});
     return this.get(path, {params: { surveypage: pageId, surveyquestion: questionId }});
-  }
+  },
 
   request(...args) {
     this.http.request(...args).then(handleHttpStatus);
-  }
+  },
 
   get(...args) {
     return this.http.get(...args).then(handleHttpStatus);
-  }
+  },
 
   put(...args) {
     return this.http.put(...args).then(handleHttpStatus);
-  }
+  },
 
   post(...args) {
     return this.http.post(...args).then(handleHttpStatus);
-  }
+  },
 
   delete(...args) {
     return this.http.delete(...args).then(handleHttpStatus);
   }
+};
+
+function SurveyGizmoClient({baseURL = 'https://restapi.surveygizmo.com', version = 'v4', ...auth}) {
+  baseURL = `${baseURL}/${version}`;
+  const http = axios.create({
+    requestType: 'json',
+    baseURL,
+    paramsSerializer: params => qs.stringify(params)
+  });
+
+  http.interceptors.request.use(authInterceptor(auth));
+
+  Reflect.defineProperty(this, 'http', {
+    configurable: true, writable: false, enumerable: true, value: http
+  });
 }
 
+/**
+ * Create a new client instance
+ * @param {Object} config   Configuration
+ * @param {String} config.baseURL The SurveyGizmo URL - defaults to 'https://restapi.surveygizmo.com'
+ * @param {String} [config.version = 'v4'] API version.
+ * @param {String} [config.apiToken] User's API token for SurveyGizmo
+ * @param {String} [config.apiTokenSecret] Secret to go with API token.
+ * @param {String} [config.username] Username - if not using tokens for auth
+ * @param {String} [config.password] Password - if not using tokens for auth
+ * @return {Object}  - instance of SurveyGizmo client
+ */
+SurveyGizmoClient.create =  function create(config) {
+  return new SurveyGizmoClient(config);
+};
 
-const svyFilter = require('./filter');
-Object.assign(SurveyGizmoClient, svyFilter);
-Object.assign(SurveyGizmoClient.prototype, svyFilter);
+SurveyGizmoClient.prototype = proto;
+SurveyGizmoClient.prototype.filter = SurveyGizmoClient.filter = filter;
+SurveyGizmoClient.Filter = Filter;
+
+//const svyFilter = require('./filter');
+//Object.assign(SurveyGizmoClient, svyFilter);
+//Object.assign(SurveyGizmoClient.prototype, svyFilter);
 //SurveyGizmoClient.prototype.filter = svyFilter;
 //SurveyGizmoClient.filter = svyFilter;
 
